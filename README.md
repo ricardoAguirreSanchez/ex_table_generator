@@ -1,4 +1,4 @@
-# Generador de Tabla de Experiencias
+# Exp Table Generator
 
 Herramienta que genera documentos Word con tablas de experiencias a partir de un Excel.
 Lee un **template Word** para detectar las columnas automáticamente y las mapea al Excel.
@@ -29,7 +29,7 @@ pip install -r requirements.txt
 ## Uso directo (con Python)
 
 ```
-python generar_word_gui.py
+python exp_table_generator.py
 ```
 
 ---
@@ -39,10 +39,10 @@ python generar_word_gui.py
 Si querés un ejecutable que funcione sin tener Python instalado:
 
 ```
-pyinstaller --onefile --windowed --name "Generador_Experiencias" generar_word_gui.py
+pyinstaller --onefile --windowed --name "exp_table_generator" exp_table_generator.py
 ```
 
-El .exe queda en `dist\Generador_Experiencias.exe`.
+El .exe queda en `dist\exp_table_generator.exe`.
 Se puede copiar a cualquier PC con Windows y funciona sin instalar nada.
 
 ---

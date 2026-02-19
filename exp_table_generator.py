@@ -1,12 +1,11 @@
 """
-Generador de Tabla de Experiencias — versión GUI portable.
+Exp Table Generator — versión GUI portable.
 
 Lee un Word template para detectar columnas, anchos y formato.
 Mapea automáticamente las columnas del template a las del Excel.
 Permite ajustar el mapeo manualmente antes de generar.
 """
 
-import json
 import sys
 import re
 import unicodedata
@@ -252,33 +251,36 @@ def read_excel_data(excel_path: str, row_numbers: list[int], mapping: list[dict]
                     sheet: str = "ESP") -> list[dict]:
     """Read specific rows using the column mapping."""
     wb = load_workbook(excel_path, data_only=True)
-    ws = wb[sheet]
+    try:
+        ws = wb[sheet]
 
-    rows = []
-    for seq, row_num in enumerate(row_numbers, start=1):
-        if row_num < 1 or row_num > ws.max_row:
-            continue
-        row_data = {}
-        for m in mapping:
-            header = m["header"]
-            source = m["source"]
+        rows = []
+        for seq, row_num in enumerate(row_numbers, start=1):
+            if row_num < 1 or row_num > ws.max_row:
+                continue
+            row_data = {}
+            for m in mapping:
+                header = m["header"]
+                source = m["source"]
 
-            if source == "(auto-incremento)":
-                row_data[header] = str(seq)
-            elif source == "(extraer país)":
-                from_col = m.get("from_col", "D")
-                raw = str(ws.cell(row=row_num, column=col_letter_to_index(from_col)).value or "")
-                row_data[header] = extract_country(raw)
-            else:
-                col_idx = col_letter_to_index(source)
-                raw = ws.cell(row=row_num, column=col_idx).value
-                val = str(raw) if raw is not None else ""
-                if m.get("format") == "short_date":
-                    val = convert_date(val)
-                row_data[header] = val
+                if source == "(auto-incremento)":
+                    row_data[header] = str(seq)
+                elif source == "(extraer país)":
+                    from_col = m.get("from_col", "D")
+                    raw = str(ws.cell(row=row_num, column=col_letter_to_index(from_col)).value or "")
+                    row_data[header] = extract_country(raw)
+                else:
+                    col_idx = col_letter_to_index(source)
+                    raw = ws.cell(row=row_num, column=col_idx).value
+                    val = str(raw) if raw is not None else ""
+                    if m.get("format") == "short_date":
+                        val = convert_date(val)
+                    row_data[header] = val
 
-        rows.append(row_data)
-    return rows
+            rows.append(row_data)
+        return rows
+    finally:
+        wb.close()
 
 
 # ---------------------------------------------------------------------------
@@ -444,7 +446,7 @@ def build_document(data_rows: list[dict], template_info: dict, mapping: list[dic
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Generador de Tabla de Experiencias")
+        self.title("Exp Table Generator")
         self.geometry("850x700")
         self.resizable(True, True)
 

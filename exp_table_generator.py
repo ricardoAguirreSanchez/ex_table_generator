@@ -14,6 +14,7 @@ from tkinter import filedialog, messagebox, scrolledtext, ttk
 from pathlib import Path
 
 from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter, column_index_from_string
 from docx import Document
 from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -113,7 +114,8 @@ def extract_country(text: str) -> str:
 
 
 def col_letter_to_index(letter: str) -> int:
-    return ord(letter.upper()) - 64
+    """Convert Excel column letter (A, B, AA, AB, etc.) to 1-based index."""
+    return column_index_from_string(letter.upper())
 
 
 # ---------------------------------------------------------------------------
@@ -198,7 +200,10 @@ def read_excel_headers(excel_path: str, sheet: str = "ESP", header_row: int = 3)
     ws = wb[sheet]
 
     headers = {}
-    for col in range(1, 27):
+    # Use max_column to support columns beyond Z (AA, AB, AG, AX, etc.)
+    max_col = min(ws.max_column, 702)  # Limit to ZZ (702 columns) to avoid excessive processing
+    
+    for col in range(1, max_col + 1):
         v1 = None
         v2 = None
         for row_idx, row in enumerate(ws.iter_rows(min_row=header_row, max_row=header_row + 1,
@@ -218,7 +223,7 @@ def read_excel_headers(excel_path: str, sheet: str = "ESP", header_row: int = 3)
             combined = str(v2)
 
         if combined.strip():
-            letter = chr(64 + col)
+            letter = get_column_letter(col)
             headers[letter] = combined.strip()
 
     wb.close()
@@ -263,7 +268,10 @@ def read_excel_data(excel_path: str, row_numbers: list[int], mapping: list[dict]
                 header = m["header"]
                 source = m["source"]
 
-                if source == "(auto-incremento)":
+                if not source or source == "":
+                    # Column without mapping - leave empty
+                    row_data[header] = ""
+                elif source == "(auto-incremento)":
                     row_data[header] = str(seq)
                 elif source == "(extraer país)":
                     from_col = m.get("from_col", "D")
@@ -271,11 +279,31 @@ def read_excel_data(excel_path: str, row_numbers: list[int], mapping: list[dict]
                     row_data[header] = extract_country(raw)
                 else:
                     col_idx = col_letter_to_index(source)
-                    raw = ws.cell(row=row_num, column=col_idx).value
-                    val = str(raw) if raw is not None else ""
-                    if m.get("format") == "short_date":
-                        val = convert_date(val)
-                    row_data[header] = val
+                    cell = ws.cell(row=row_num, column=col_idx)
+                    raw = cell.value
+                    format_type = m.get("format", "")
+                    
+                    if format_type == "valor_tal_cual":
+                        # Preserve the value exactly as displayed in Excel
+                        # Use the formatted value if available, otherwise use the raw value
+                        if raw is None:
+                            row_data[header] = ""
+                        elif isinstance(raw, (int, float)):
+                            # For numbers, preserve as-is (will be converted to string when writing to Word)
+                            row_data[header] = raw
+                        elif isinstance(raw, str):
+                            # Already a string, use as-is
+                            row_data[header] = raw
+                        else:
+                            # For dates, datetime objects, etc., convert to string preserving format
+                            row_data[header] = str(raw)
+                    elif format_type == "short_date":
+                        val = str(raw) if raw is not None else ""
+                        row_data[header] = convert_date(val)
+                    else:
+                        # Default: convert to string
+                        val = str(raw) if raw is not None else ""
+                        row_data[header] = val
 
             rows.append(row_data)
         return rows
@@ -422,6 +450,26 @@ def build_document(data_rows: list[dict], template_info: dict, mapping: list[dic
     for row_idx, row_data in enumerate(data_rows):
         for col_idx, m in enumerate(mapping):
             value = row_data.get(m["header"], "")
+            # Convert to string for Word
+            # For "valor_tal_cual", preserve the exact value as displayed
+            format_type = m.get("format", "")
+            if value is None:
+                value = ""
+            elif format_type == "valor_tal_cual":
+                # Preserve the value exactly as it appears in Excel
+                # Numbers stay as numbers, text as text, dates as dates
+                if isinstance(value, (int, float)):
+                    # For numbers, convert to string preserving decimal places
+                    # This preserves the visual representation better than str()
+                    if isinstance(value, float) and value.is_integer():
+                        value = str(int(value))
+                    else:
+                        value = str(value)
+                elif not isinstance(value, str):
+                    value = str(value)
+                # If it's already a string, keep it as-is
+            elif not isinstance(value, str):
+                value = str(value)
             cell = table.rows[row_idx + 1].cells[col_idx]
             cell.text = ""
             p = cell.paragraphs[0]
@@ -589,12 +637,12 @@ class App(tk.Tk):
                  anchor="w", width=12).grid(row=0, column=3, padx=3, sticky="w")
 
         # Options for dropdowns
-        excel_options = SPECIAL_SOURCES.copy()
+        excel_options = ["(vacío)"] + SPECIAL_SOURCES.copy()
         for letter, header in sorted(self.excel_headers.items()):
             display = f"{letter}: {header[:40]}"
             excel_options.append(display)
 
-        format_options = ["(ninguno)", "short_date"]
+        format_options = ["(ninguno)", "short_date", "valor_tal_cual"]
 
         for i, m in enumerate(mapping):
             row = i + 1
@@ -604,7 +652,7 @@ class App(tk.Tk):
 
             # Find current selection
             source = m.get("source", "")
-            current_display = ""
+            current_display = "(vacío)"
             if source in SPECIAL_SOURCES:
                 current_display = source
             elif source and source in self.excel_headers:
@@ -638,9 +686,6 @@ class App(tk.Tk):
             fmt_raw = w["fmt_combo"].get().strip()
             fmt = "" if fmt_raw == "(ninguno)" else fmt_raw
 
-            if not raw:
-                continue
-
             m = {
                 "header": w["header"],
                 "width": w["width"],
@@ -649,7 +694,10 @@ class App(tk.Tk):
                 "format": fmt,
             }
 
-            if raw == "(auto-incremento)":
+            if not raw or raw == "(vacío)":
+                # Column without mapping - will be empty in output
+                m["source"] = ""
+            elif raw == "(auto-incremento)":
                 m["source"] = "(auto-incremento)"
             elif raw == "(extraer país)":
                 m["source"] = "(extraer país)"

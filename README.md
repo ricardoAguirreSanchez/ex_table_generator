@@ -72,6 +72,7 @@ Opciones especiales disponibles:
 | `(auto-incremento)` | Numera las filas 1, 2, 3... |
 | `(extraer país)` | Detecta el país a partir de la entidad contratante |
 | `short_date` (formato) | Convierte "Agosto 2021" → "ago-21" |
+| `valor_tal_cual` (formato) | Toma el valor tal cual del Excel, sin conversiones. Útil para fórmulas donde querés el resultado calculado |
 
 ### Paso 4 — Elegir filas y generar
 

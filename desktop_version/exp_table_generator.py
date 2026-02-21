@@ -677,7 +677,10 @@ class App(tk.Tk):
                 "align": m.get("align", "CENTER (1)"),
             })
 
-        self.mapping_hint.config(text=f"Se auto-mapearon {len(mapping)} columnas. Ajustá si es necesario.")
+        self.mapping_hint.config(text=f"Se auto-mapearon {len(mapping)} columnas. Ajustá si es necesario. Podés elegir varias columnas del Excel (Ctrl+clic o Cmd+clic) para una columna del template; los valores se concatenan con " - "
+
+
+.")
 
     def _get_final_mapping(self) -> list[dict]:
         mapping = []

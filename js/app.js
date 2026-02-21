@@ -255,27 +255,16 @@ function readExcelHeaders(wb, sheetName, headerRow) {
   if (!data) throw new Error(`Hoja '${sheetName}' no encontrada. Disponibles: ${wb.SheetNames.join(', ')}`);
 
   const headers = {};
-  const rowIdx1 = headerRow - 1;
-  const rowIdx2 = headerRow;
-  const row1 = data[rowIdx1] || [];
-  const row2 = data[rowIdx2] || [];
-  const maxCol = Math.min(Math.max(row1.length, row2.length), 700);
+  const rowIdx = headerRow - 1;
+  const row = data[rowIdx] || [];
+  const maxCol = Math.min(row.length, 700);
 
   for (let col = 0; col < maxCol; col++) {
     const colLetter = colIndexToLetter(col + 1);
-    const v1 = row1[col];
-    const v2 = row2[col];
-
-    let combined = '';
-    if (v1 != null && v2 != null && String(v1).trim() && String(v2).trim()) {
-      combined = `${v1} / ${v2}`;
-    } else if (v1 != null && String(v1).trim()) {
-      combined = String(v1);
-    } else if (v2 != null && String(v2).trim()) {
-      combined = String(v2);
+    const v = row[col];
+    if (v != null && String(v).trim()) {
+      headers[colLetter] = String(v).trim();
     }
-
-    if (combined.trim()) headers[colLetter] = combined.trim();
   }
   return headers;
 }
@@ -285,7 +274,7 @@ function peekExcelRows(wb, sheetName, headerRow) {
   if (!data) return `ERROR: Hoja '${sheetName}' no encontrada.`;
   const lines = [`Hoja: ${sheetName}\n`];
   let shown = 0;
-  for (let r = headerRow + 1; r < data.length && shown < 20; r++) {
+  for (let r = headerRow; r < data.length && shown < 20; r++) {
     const row = data[r] || [];
     const firstVal = row[0];
     if (firstVal != null && String(firstVal).trim()) {
@@ -323,21 +312,23 @@ function readExcelData(wb, sheetName, rowNumbers, mapping) {
         const raw = excelRow[colIdx] != null ? String(excelRow[colIdx]) : '';
         rowData[header] = extractCountry(raw);
       } else {
-        const colIdx = colLetterToIndex(source) - 1;
-        let raw = excelRow[colIdx];
         const formatType = m.format || 'valor_tal_cual';
-
-        if (formatType === 'valor_tal_cual') {
-          if (raw == null) rowData[header] = '';
-          else if (raw instanceof Date) rowData[header] = formatExcelDate(raw);
-          else if (typeof raw === 'number') rowData[header] = raw;
-          else rowData[header] = String(raw);
-        } else if (formatType === 'fecha_corta') {
-          const val = raw != null ? String(raw) : '';
-          rowData[header] = convertDate(val);
-        } else {
-          rowData[header] = raw != null ? String(raw) : '';
-        }
+        const sources = String(source).split(',').map(s => s.trim()).filter(Boolean);
+        const values = sources.map(colLetter => {
+          const colIdx = colLetterToIndex(colLetter) - 1;
+          let raw = excelRow[colIdx];
+          if (formatType === 'valor_tal_cual') {
+            if (raw == null) return '';
+            if (raw instanceof Date) return formatExcelDate(raw);
+            if (typeof raw === 'number') return String(raw);
+            return String(raw);
+          }
+          if (formatType === 'fecha_corta') {
+            return convertDate(raw != null ? String(raw) : '');
+          }
+          return raw != null ? String(raw) : '';
+        }).filter(v => v !== '');
+        rowData[header] = values.join(' - ');
       }
     });
     rows.push(rowData);
@@ -521,9 +512,22 @@ function getMappingFromUI() {
     const bold = tr.dataset.bold === 'true';
     const align = tr.dataset.align || 'CENTER (1)';
 
-    const sourceVal = sourceSelect?.value || '(vacío)';
-    let source = sourceVal;
-    if (sourceVal.includes(':')) source = sourceVal.split(':')[0].trim();
+    const selectedOpts = Array.from(sourceSelect?.selectedOptions || []);
+    const sourceVals = selectedOpts.map(o => o.value);
+    let source = '';
+    if (sourceVals.length === 0 || sourceVals.includes('(vacío)')) {
+      source = '';
+    } else if (sourceVals.includes('(auto-incremento)')) {
+      source = '(auto-incremento)';
+    } else if (sourceVals.includes('(extraer país)')) {
+      source = '(extraer país)';
+    } else {
+      const cols = sourceVals
+        .filter(v => !['(vacío)', '(auto-incremento)', '(extraer país)'].includes(v))
+        .map(v => v.includes(':') ? v.split(':')[0].trim() : v)
+        .filter(Boolean);
+      source = cols.join(',');
+    }
 
     const formatVal = formatSelect?.value || 'valor_tal_cual';
     const format = formatVal === '(ninguno)' ? 'valor_tal_cual' : formatVal;
@@ -575,18 +579,23 @@ function renderMapping(mapping) {
 
     const sourceSelect = document.createElement('select');
     sourceSelect.className = 'source-select';
-    let selectedSource = '(vacío)';
-    if (m.source === '(auto-incremento)') selectedSource = '(auto-incremento)';
-    else if (m.source === '(extraer país)') selectedSource = '(extraer país)';
+    sourceSelect.multiple = true;
+    sourceSelect.title = 'Ctrl+clic (o Cmd+clic en Mac) para elegir varias columnas. Los valores se concatenan con " - ".';
+    const selectedSources = [];
+    if (m.source === '(auto-incremento)') selectedSources.push('(auto-incremento)');
+    else if (m.source === '(extraer país)') selectedSources.push('(extraer país)');
     else if (m.source) {
-      const match = excelOptions.find(o => o.startsWith(m.source + ':'));
-      if (match) selectedSource = match;
-    }
+      m.source.split(',').map(s => s.trim()).forEach(letter => {
+        const match = excelOptions.find(o => o.startsWith(letter + ':') || o === letter);
+        if (match) selectedSources.push(match);
+      });
+      if (selectedSources.length === 0) selectedSources.push('(vacío)');
+    } else selectedSources.push('(vacío)');
     excelOptions.forEach(opt => {
       const optEl = document.createElement('option');
       optEl.value = opt;
       optEl.textContent = opt;
-      if (opt === selectedSource) optEl.selected = true;
+      if (selectedSources.includes(opt)) optEl.selected = true;
       sourceSelect.appendChild(optEl);
     });
 
@@ -612,7 +621,10 @@ function renderMapping(mapping) {
     tbody.appendChild(tr);
   });
 
-  document.getElementById('mappingHint').textContent = `Se auto-mapearon ${mapping.length} columnas. Ajustá si es necesario.`;
+  document.getElementById('mappingHint').textContent = `Se auto-mapearon ${mapping.length} columnas. Ajustá si es necesario. Podés elegir varias columnas del Excel (Ctrl+clic o Cmd+clic) para una columna del template; los valores se concatenan con " - "
+
+
+.`;
 }
 
 function tryBuildMapping() {

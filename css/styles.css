@@ -222,6 +222,10 @@ main {
   font-size: 0.85rem;
 }
 
+.mapping-table select[multiple] {
+  min-height: 80px;
+}
+
 .mapping-table select:focus {
   outline: none;
   border-color: var(--accent);

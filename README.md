@@ -57,7 +57,7 @@ Se mapea cada columna del template a la del Excel. Podés ajustar el mapeo y los
 | `(auto-incremento)` | Numera las filas 1, 2, 3... |
 | `(extraer país)` | Detecta el país a partir de la entidad contratante |
 | `valor_tal_cual` | Copia el valor tal cual del Excel |
-| `short_date` | Convierte "Agosto 2021" → "ago-21" |
+| `fecha_corta` | Convierte "Agosto 2021" → "ago-21" |
 
 ### Paso 4 — Filas
 Formato de entrada:

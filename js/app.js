@@ -332,7 +332,7 @@ function readExcelData(wb, sheetName, rowNumbers, mapping) {
           else if (raw instanceof Date) rowData[header] = formatExcelDate(raw);
           else if (typeof raw === 'number') rowData[header] = raw;
           else rowData[header] = String(raw);
-        } else if (formatType === 'short_date') {
+        } else if (formatType === 'fecha_corta') {
           const val = raw != null ? String(raw) : '';
           rowData[header] = convertDate(val);
         } else {
@@ -380,15 +380,12 @@ function autoMap(templateCols, headers) {
       return;
     }
 
-    const words = new Set(headerNorm.split(/\s+/));
-    const isStartDate = [...DATE_KEYWORDS_START].some(w => words.has(w));
-    const isEndDate = [...DATE_KEYWORDS_END].some(w => words.has(w));
-    if (isStartDate || isEndDate) fmt = 'short_date';
-
     for (const [letter, excelHeader] of sortedHeaders) {
       if (used.has(letter)) continue;
       let score = wordOverlap(col.header, excelHeader);
       const ehNorm = normalize(excelHeader);
+      const isStartDate = [...DATE_KEYWORDS_START].some(w => new Set(headerNorm.split(/\s+/)).has(w));
+      const isEndDate = [...DATE_KEYWORDS_END].some(w => new Set(headerNorm.split(/\s+/)).has(w));
       if (isStartDate && (ehNorm.includes('desde') || ehNorm.includes('inicio') || ehNorm.includes('from'))) score += 0.4;
       if (isEndDate && (ehNorm.includes('hasta') || ehNorm.includes('fin') || ehNorm.includes('until'))) score += 0.4;
 
@@ -566,7 +563,7 @@ function renderMapping(mapping) {
 
   const formatOptions = [
     'valor_tal_cual',
-    'short_date',
+    'fecha_corta',
   ];
 
   mapping.forEach(m => {
@@ -599,7 +596,7 @@ function renderMapping(mapping) {
     formatOptions.forEach(opt => {
       const optEl = document.createElement('option');
       optEl.value = opt;
-      optEl.textContent = opt === 'valor_tal_cual' ? 'valor_tal_cual (tal cual en Excel)' : 'short_date (ej: ago-21)';
+      optEl.textContent = opt;
       if (opt === fmt) optEl.selected = true;
       formatSelect.appendChild(optEl);
     });

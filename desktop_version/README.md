@@ -66,7 +66,7 @@ El archivo queda en `dist\exp_table_generator.exe`.
 | `(auto-incremento)` | Numera 1, 2, 3... |
 | `(extraer país)` | Detecta país desde entidad contratante |
 | `valor_tal_cual` | Copia el valor tal cual (ideal para fórmulas) |
-| `short_date` | Convierte "Agosto 2021" → "ago-21" |
+| `fecha_corta` | Convierte "Agosto 2021" → "ago-21" |
 
 ## Filas a incluir
 

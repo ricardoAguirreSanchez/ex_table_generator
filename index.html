@@ -52,6 +52,13 @@
       <section class="card">
         <h2>3. Mapeo de columnas</h2>
         <p class="hint" id="mappingHint">Cargá un template y un Excel para ver el mapeo.</p>
+        <div class="format-legend">
+          <p class="format-legend-title">Formatos disponibles</p>
+          <ul>
+            <li><strong>valor_tal_cual</strong>: Copia el valor tal como se ve en Excel (por defecto).</li>
+            <li><strong>fecha_corta</strong>: Solo aplica cuando el valor tiene formato "Mes Año" (ej: "Diciembre 2024" → "dic-24", "Agosto 2021" → "ago-21"). En otros casos (texto, números, fechas con otro formato) deja el valor sin cambios.</li>
+          </ul>
+        </div>
         <div class="table-scroll" id="mappingContainer">
           <table class="mapping-table" id="mappingTable">
             <thead>

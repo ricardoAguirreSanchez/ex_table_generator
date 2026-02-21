@@ -159,6 +159,26 @@ main {
   margin-bottom: 0.75rem;
 }
 
+.format-legend {
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.format-legend-title {
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.format-legend ul {
+  margin: 0.5rem 0 0 1.25rem;
+  padding: 0;
+}
+
+.format-legend li {
+  margin-bottom: 0.25rem;
+}
+
 .table-scroll {
   overflow-x: auto;
   margin-top: 0.5rem;

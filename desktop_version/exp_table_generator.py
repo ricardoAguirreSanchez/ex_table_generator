@@ -297,7 +297,7 @@ def read_excel_data(excel_path: str, row_numbers: list[int], mapping: list[dict]
                         else:
                             # For dates, datetime objects, etc., convert to string preserving format
                             row_data[header] = str(raw)
-                    elif format_type == "short_date":
+                    elif format_type == "fecha_corta":
                         val = str(raw) if raw is not None else ""
                         row_data[header] = convert_date(val)
                     else:
@@ -366,7 +366,7 @@ def auto_map(template_cols: list[dict], excel_headers: dict) -> list[dict]:
                 best_source = letter
 
         if is_start_date or is_end_date:
-            fmt = "short_date"
+            fmt = "fecha_corta"
 
         if best_source and best_score > 0.1:
             used.add(best_source)
@@ -642,7 +642,7 @@ class App(tk.Tk):
             display = f"{letter}: {header[:40]}"
             excel_options.append(display)
 
-        format_options = ["(ninguno)", "short_date", "valor_tal_cual"]
+        format_options = ["(ninguno)", "fecha_corta", "valor_tal_cual"]
 
         for i, m in enumerate(mapping):
             row = i + 1

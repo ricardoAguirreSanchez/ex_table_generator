@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exp Table Generator</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Exp Table Generator</h1>
+      <p class="subtitle">Genera documentos Word con tablas a partir de un Excel</p>
+    </header>
+
+    <main>
+      <!-- Paso 1: Template Word -->
+      <section class="card">
+        <h2>1. Template Word</h2>
+        <div class="file-input-wrapper">
+          <input type="file" id="templateInput" accept=".docx" class="file-input">
+          <label for="templateInput" class="file-label">Seleccionar archivo .docx</label>
+          <span id="templateName" class="file-name">Ningún archivo seleccionado</span>
+        </div>
+      </section>
+
+      <!-- Paso 2: Excel -->
+      <section class="card">
+        <h2>2. Excel (datos fuente)</h2>
+        <div class="file-input-wrapper">
+          <input type="file" id="excelInput" accept=".xlsx,.xls" class="file-input">
+          <label for="excelInput" class="file-label">Seleccionar archivo .xlsx</label>
+          <span id="excelName" class="file-name">Ningún archivo seleccionado</span>
+        </div>
+        <div class="options-row">
+          <label>
+            Hoja:
+            <input type="text" id="sheetName" value="ESP" class="input-small">
+          </label>
+          <label>
+            Fila encabezado:
+            <input type="number" id="headerRow" value="3" min="1" class="input-small">
+          </label>
+          <button type="button" id="loadExcel" class="btn btn-secondary">Cargar Excel</button>
+        </div>
+        <div class="preview-box" id="excelPreview">
+          <p class="preview-placeholder">Cargá un Excel para ver la vista previa.</p>
+        </div>
+      </section>
+
+      <!-- Paso 3: Mapeo -->
+      <section class="card">
+        <h2>3. Mapeo de columnas</h2>
+        <p class="hint" id="mappingHint">Cargá un template y un Excel para ver el mapeo.</p>
+        <div class="table-scroll" id="mappingContainer">
+          <table class="mapping-table" id="mappingTable">
+            <thead>
+              <tr>
+                <th>Columna template</th>
+                <th></th>
+                <th>Columna Excel</th>
+                <th>Formato</th>
+              </tr>
+            </thead>
+            <tbody id="mappingBody">
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Paso 4: Filas y generar -->
+      <section class="card">
+        <h2>4. Filas a incluir</h2>
+        <p class="hint">Separadas por coma, espacio o rango con guión (ej: 50, 51 o 10-15)</p>
+        <div class="generate-row">
+          <input type="text" id="rowsInput" value="50, 51" class="input-rows" placeholder="50, 51 o 10-15">
+          <button type="button" id="generateBtn" class="btn btn-primary">Generar Word</button>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p id="status" class="status">Comenzá seleccionando un template Word y un Excel.</p>
+    </footer>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

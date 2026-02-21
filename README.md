@@ -3,95 +3,83 @@
 Herramienta que genera documentos Word con tablas de experiencias a partir de un Excel.
 Lee un **template Word** para detectar las columnas automáticamente y las mapea al Excel.
 
----
-
-## Requisitos
-
-- Windows 10 o superior
-- Python 3.9 o superior ([descargar](https://www.python.org/downloads/))
-
-> Al instalar Python, **marcar la casilla "Add Python to PATH"**.
+Funciona 100% en el navegador — no requiere instalación. Ideal para [GitHub Pages](https://pages.github.com/).
 
 ---
 
-## Instalación
+## Uso web (recomendado)
 
-1. Clonar o descargar este repositorio
-2. Abrir CMD o PowerShell en la carpeta del proyecto
-3. Ejecutar:
-
-```
-pip install -r requirements.txt
-```
-
----
-
-## Uso directo (con Python)
-
-```
-python exp_table_generator.py
-```
+1. Abrí `index.html` en tu navegador (doble clic o servidor local)
+2. Subí un template Word (.docx)
+3. Subí un Excel (.xlsx) y hacé clic en "Cargar Excel"
+4. Revisá o ajustá el mapeo de columnas
+5. Ingresá las filas a incluir (ej: `50, 51` o `10-15`)
+6. Clic en **Generar Word** — se descargará el archivo
 
 ---
 
-## Generar .exe (opcional)
+## Desplegar en GitHub Pages
 
-Si querés un ejecutable que funcione sin tener Python instalado:
+1. Subí el proyecto a un repositorio de GitHub
+2. En el repo: **Settings** → **Pages**
+3. En **Source** elegí la rama (p. ej. `main`) y la carpeta raíz
+4. Guardá — la página quedará disponible en:
+   `https://<usuario>.github.io/<repo>/`
+
+### Estructura para GitHub Pages
 
 ```
-pyinstaller --onefile --windowed --name "exp_table_generator" exp_table_generator.py
+ex_table_generator/
+├── index.html
+├── css/
+│   └── styles.css
+├── js/
+│   └── app.js
+└── README.md
 ```
-
-El .exe queda en `dist\exp_table_generator.exe`.
-Se puede copiar a cualquier PC con Windows y funciona sin instalar nada.
 
 ---
 
 ## Cómo funciona
 
-Al abrir la herramienta aparece una ventana con 4 pasos:
+### Paso 1 — Template Word
+Elegís el Word que sirve de modelo. La herramienta detecta automáticamente las columnas, anchos y formato de la tabla.
 
-### Paso 1 — Seleccionar template Word
+### Paso 2 — Excel
+Elegís el Excel con los datos. Indicás la hoja y la fila de encabezado. Se muestra una vista previa de las filas.
 
-Elegís el Word que sirve de modelo. La herramienta detecta automáticamente
-las columnas, anchos y formato de la tabla.
-
-### Paso 2 — Seleccionar Excel
-
-Elegís el Excel con los datos. Se muestra una vista previa de las filas disponibles.
-
-### Paso 3 — Revisar mapeo de columnas
-
-La herramienta mapea automáticamente cada columna del template a la columna
-del Excel que mejor coincida. Podés ajustar cualquier mapeo con los dropdowns.
-
-Opciones especiales disponibles:
+### Paso 3 — Mapeo
+Se mapea cada columna del template a la del Excel. Podés ajustar el mapeo y los formatos.
 
 | Opción | Qué hace |
 |--------|----------|
+| `(vacío)` | La columna queda vacía en el Word |
 | `(auto-incremento)` | Numera las filas 1, 2, 3... |
 | `(extraer país)` | Detecta el país a partir de la entidad contratante |
-| `short_date` (formato) | Convierte "Agosto 2021" → "ago-21" |
-| `valor_tal_cual` (formato) | Toma el valor tal cual del Excel, sin conversiones. Útil para fórmulas donde querés el resultado calculado |
+| `valor_tal_cual` | Copia el valor tal cual del Excel |
+| `short_date` | Convierte "Agosto 2021" → "ago-21" |
 
-### Paso 4 — Elegir filas y generar
-
-Escribís los números de fila del Excel que querés incluir y hacés click en **Generar Word**.
-
-Formatos válidos:
+### Paso 4 — Filas
+Formato de entrada:
 - `50, 51` — filas individuales
 - `10 20 30` — separadas por espacio
-- `10-20` — rango de filas
+- `10-20` — rango
 - `5, 10-15, 20` — combinación
 
 ---
 
-## Cambiar el template
+## Versión Python (escritorio)
 
-No hay que modificar código. Si el template cambia (columnas distintas, otro formato):
+También existe una versión de escritorio con interfaz gráfica:
 
-1. Abrí la herramienta
-2. Seleccioná el nuevo Word como template
-3. Las columnas se detectan automáticamente
-4. Ajustá el mapeo si es necesario
-5. Generá
+```
+python exp_table_generator.py
+```
+
+Requisitos: Python 3.9+, `pip install -r requirements.txt`
+
+---
+
+## Privacidad
+
+Todo el procesamiento se hace en tu navegador. Los archivos no se envían a ningún servidor.

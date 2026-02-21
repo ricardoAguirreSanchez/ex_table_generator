@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Test - Exp Table Generator</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; padding: 1rem; }
+    .result { margin-top: 1rem; padding: 1rem; background: #f0f0f0; border-radius: 8px; }
+    .error { color: #c00; }
+    .success { color: #080; }
+    button { padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Test Exp Table Generator</h1>
+  <p>Cargando template y Excel de test_data...</p>
+  <div id="log" class="result"></div>
+  <button id="runBtn" disabled>Ejecutar prueba</button>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    const log = (msg, isError) => {
+      const el = document.getElementById('log');
+      const p = document.createElement('p');
+      p.textContent = msg;
+      p.className = isError ? 'error' : '';
+      el.appendChild(p);
+    };
+    let templateFile = null;
+    let excelFile = null;
+    Promise.all([
+      fetch('test_data/template.docx').then(r => r.blob()).then(b => {
+        templateFile = new File([b], 'template.docx');
+        log('✓ Template cargado');
+      }),
+      fetch('test_data/excel_padre_caso2.xlsx').then(r => r.blob()).then(b => {
+        excelFile = new File([b], 'excel_padre_caso2.xlsx');
+        log('✓ Excel cargado');
+      })
+    ]).then(() => {
+      document.getElementById('runBtn').disabled = false;
+      document.querySelector('p').textContent = 'Archivos listos. Clic en "Ejecutar prueba" para generar el Word.';
+    }).catch(err => {
+      log('Error cargando archivos: ' + err.message, true);
+      log('Asegurate de servir la app con un servidor HTTP (ej: python -m http.server 8080)', true);
+    });
+    document.getElementById('runBtn').onclick = async () => {
+      const btn = document.getElementById('runBtn');
+      btn.disabled = true;
+      log('Ejecutando...');
+      try {
+        templateInfo = await parseTemplate(templateFile);
+        log('Template parseado: ' + templateInfo.columns.length + ' columnas');
+        const arrayBuffer = await excelFile.arrayBuffer();
+        excelWorkbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: false, cellNF: false });
+        const sheetName = excelWorkbook.SheetNames.includes('ESP') ? 'ESP' : excelWorkbook.SheetNames[0];
+        log('Usando hoja: ' + sheetName);
+        const headerRow = 3;
+        excelHeaders = readExcelHeaders(excelWorkbook, sheetName, headerRow);
+        log('Excel cargado: ' + Object.keys(excelHeaders).length + ' columnas');
+        const rowNumbers = [50, 51];
+        const mapping = autoMap(templateInfo.columns, excelHeaders);
+        const dataRows = readExcelData(excelWorkbook, sheetName, rowNumbers, mapping);
+        log('Filas leídas: ' + dataRows.length);
+        if (dataRows.length === 0) throw new Error('No se obtuvieron filas');
+        const doc = buildDocument(dataRows, templateInfo, mapping);
+        const d = typeof docx !== 'undefined' ? docx : window.docx;
+        const blob = await d.Packer.toBlob(doc);
+        saveAs(blob, 'Tabla_filas_50_51_test.docx');
+        log('✓ Word generado: Tabla_filas_50_51_test.docx', false);
+      } catch (e) {
+        log('Error: ' + e.message, true);
+        console.error(e);
+      }
+      btn.disabled = false;
+    };
+  </script>
+</body>
+</html>

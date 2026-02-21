@@ -99,6 +99,20 @@ function colLetterToIndex(letter) {
   return index;
 }
 
+function formatExcelDate(val) {
+  if (val == null) return '';
+  if (val instanceof Date) {
+    const d = val;
+    const pad = (n) => String(n).padStart(2, '0');
+    const day = d.getDate();
+    const month = d.getMonth() + 1;
+    const year = d.getFullYear();
+    if (day === 1) return `${pad(month)}/${year}`;
+    return `${pad(day)}/${pad(month)}/${year}`;
+  }
+  return String(val);
+}
+
 // ---------------------------------------------------------------------------
 // Parse Word Template (docx)
 // ---------------------------------------------------------------------------
@@ -223,25 +237,43 @@ async function parseTemplate(file) {
 
 // ---------------------------------------------------------------------------
 // Excel (SheetJS)
+// sheet_to_json con header:1 devuelve array de filas: data[fila][columna]
+// fila 0 = Excel fila 1, columna 0 = Excel columna A
 // ---------------------------------------------------------------------------
-function readExcelHeaders(wb, sheetName, headerRow) {
+function getSheetData(wb, sheetName) {
   const sheet = wb.Sheets[sheetName];
-  if (!sheet) throw new Error(`Hoja '${sheetName}' no encontrada. Disponibles: ${wb.SheetNames.join(', ')}`);
+  if (!sheet) return null;
+  return XLSX.utils.sheet_to_json(sheet, {
+    header: 1,
+    defval: null,
+    raw: false,
+  });
+}
 
-  const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1');
+function readExcelHeaders(wb, sheetName, headerRow) {
+  const data = getSheetData(wb, sheetName);
+  if (!data) throw new Error(`Hoja '${sheetName}' no encontrada. Disponibles: ${wb.SheetNames.join(', ')}`);
+
   const headers = {};
+  const rowIdx1 = headerRow - 1;
+  const rowIdx2 = headerRow;
+  const row1 = data[rowIdx1] || [];
+  const row2 = data[rowIdx2] || [];
+  const maxCol = Math.min(Math.max(row1.length, row2.length), 700);
 
-  for (let col = 0; col <= Math.min(range.e.c, 700); col++) {
+  for (let col = 0; col < maxCol; col++) {
     const colLetter = colIndexToLetter(col + 1);
-    const cell1 = sheet[XLSX.utils.encode_cell({ r: headerRow - 1, c: col })];
-    const cell2 = sheet[XLSX.utils.encode_cell({ r: headerRow, c: col })];
-    const v1 = cell1 ? (cell1.w || cell1.v) : null;
-    const v2 = cell2 ? (cell2.w || cell2.v) : null;
+    const v1 = row1[col];
+    const v2 = row2[col];
 
     let combined = '';
-    if (v1 && v2) combined = `${v1} / ${v2}`;
-    else if (v1) combined = String(v1);
-    else if (v2) combined = String(v2);
+    if (v1 != null && v2 != null && String(v1).trim() && String(v2).trim()) {
+      combined = `${v1} / ${v2}`;
+    } else if (v1 != null && String(v1).trim()) {
+      combined = String(v1);
+    } else if (v2 != null && String(v2).trim()) {
+      combined = String(v2);
+    }
 
     if (combined.trim()) headers[colLetter] = combined.trim();
   }
@@ -249,16 +281,15 @@ function readExcelHeaders(wb, sheetName, headerRow) {
 }
 
 function peekExcelRows(wb, sheetName, headerRow) {
-  const sheet = wb.Sheets[sheetName];
-  if (!sheet) return `ERROR: Hoja '${sheetName}' no encontrada.`;
-  const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1');
+  const data = getSheetData(wb, sheetName);
+  if (!data) return `ERROR: Hoja '${sheetName}' no encontrada.`;
   const lines = [`Hoja: ${sheetName}\n`];
   let shown = 0;
-  for (let r = headerRow + 1; r <= range.e.r && shown < 20; r++) {
-    const cell = sheet[XLSX.utils.encode_cell({ r, c: 0 })];
-    if (cell && (cell.v !== undefined || cell.w)) {
-      const val = cell.w || String(cell.v);
-      lines.push(`  Fila ${r + 1}: ${val.substring(0, 90)}`);
+  for (let r = headerRow + 1; r < data.length && shown < 20; r++) {
+    const row = data[r] || [];
+    const firstVal = row[0];
+    if (firstVal != null && String(firstVal).trim()) {
+      lines.push(`  Fila ${r + 1}: ${String(firstVal).substring(0, 90)}`);
       shown++;
     }
   }
@@ -267,14 +298,15 @@ function peekExcelRows(wb, sheetName, headerRow) {
 }
 
 function readExcelData(wb, sheetName, rowNumbers, mapping) {
-  const sheet = wb.Sheets[sheetName];
-  const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1');
+  const data = getSheetData(wb, sheetName);
+  if (!data) return [];
   const rows = [];
 
   rowNumbers.forEach((rowNum, seqIdx) => {
-    const excelRow = rowNum - 1;
-    if (excelRow < 0 || excelRow > range.e.r) return;
+    const rowIdx = rowNum - 1;
+    if (rowIdx < 0 || rowIdx >= data.length) return;
 
+    const excelRow = data[rowIdx] || [];
     const rowData = {};
     const seq = seqIdx + 1;
 
@@ -287,19 +319,17 @@ function readExcelData(wb, sheetName, rowNumbers, mapping) {
       } else if (source === '(auto-incremento)') {
         rowData[header] = String(seq);
       } else if (source === '(extraer país)') {
-        const fromCol = m.from_col || 'D';
-        const colIdx = colLetterToIndex(fromCol) - 1;
-        const cell = sheet[XLSX.utils.encode_cell({ r: excelRow, c: colIdx })];
-        const raw = cell ? (cell.w || String(cell.v || '')) : '';
+        const colIdx = colLetterToIndex(m.from_col || 'D') - 1;
+        const raw = excelRow[colIdx] != null ? String(excelRow[colIdx]) : '';
         rowData[header] = extractCountry(raw);
       } else {
         const colIdx = colLetterToIndex(source) - 1;
-        const cell = sheet[XLSX.utils.encode_cell({ r: excelRow, c: colIdx })];
-        let raw = cell ? cell.v : null;
+        let raw = excelRow[colIdx];
         const formatType = m.format || 'valor_tal_cual';
 
         if (formatType === 'valor_tal_cual') {
           if (raw == null) rowData[header] = '';
+          else if (raw instanceof Date) rowData[header] = formatExcelDate(raw);
           else if (typeof raw === 'number') rowData[header] = raw;
           else rowData[header] = String(raw);
         } else if (formatType === 'short_date') {
@@ -629,7 +659,7 @@ document.getElementById('loadExcel').addEventListener('click', async () => {
   try {
     setStatus('Leyendo Excel...');
     const arrayBuffer = await excelFile.arrayBuffer();
-    excelWorkbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true, cellNF: true });
+    excelWorkbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: false, cellNF: false });
     excelHeaders = readExcelHeaders(excelWorkbook, sheetName, headerRow);
     const preview = peekExcelRows(excelWorkbook, sheetName, headerRow);
     document.getElementById('excelPreview').innerHTML = `<pre>${preview}</pre>`;

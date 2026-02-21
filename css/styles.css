@@ -1,15 +1,15 @@
-/* Exp Table Generator - Web Styles */
+/* Exp Table Generator - Paleta para ingenieros/arquitectos */
 :root {
-  --bg: #0f1419;
-  --bg-card: #1a2332;
-  --text: #e6edf3;
-  --text-muted: #8b949e;
-  --accent: #58a6ff;
-  --accent-hover: #79b8ff;
-  --success: #3fb950;
-  --success-hover: #56d364;
-  --border: #30363d;
-  --input-bg: #0d1117;
+  --bg: #e8ecf1;
+  --bg-card: #ffffff;
+  --text: #2c3e50;
+  --text-muted: #5d6d7e;
+  --accent: #e67e22;
+  --accent-hover: #d35400;
+  --success: #27ae60;
+  --success-hover: #2ecc71;
+  --border: #c8d4e0;
+  --input-bg: #f5f7fa;
 }
 
 * {
@@ -41,7 +41,7 @@ header h1 {
   font-size: 2rem;
   font-weight: 700;
   margin-bottom: 0.5rem;
-  background: linear-gradient(135deg, #58a6ff 0%, #a371f7 100%);
+  background: linear-gradient(135deg, #e67e22 0%, #f39c12 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -63,6 +63,7 @@ main {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .card h2 {
@@ -88,7 +89,7 @@ main {
   display: inline-block;
   padding: 0.5rem 1rem;
   background: var(--accent);
-  color: #fff;
+  color: #ffffff;
   border-radius: 8px;
   cursor: pointer;
   font-size: 0.9rem;
@@ -165,9 +166,14 @@ main {
   color: var(--text-muted);
 }
 
+.format-legend strong {
+  color: var(--text);
+}
+
 .format-legend-title {
   font-weight: 600;
   margin-bottom: 0.35rem;
+  color: var(--text);
 }
 
 .format-legend ul {
@@ -270,18 +276,19 @@ main {
 }
 
 .btn-primary:disabled {
-  background: var(--border);
+  background: #95a5a6;
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 0.7;
 }
 
 .btn-secondary {
-  background: var(--border);
-  color: var(--text);
+  background: #95a5a6;
+  color: #fff;
 }
 
 .btn-secondary:hover {
-  background: #444c56;
+  background: #a0aec0;
+  color: #fff;
 }
 
 footer {
@@ -300,7 +307,7 @@ footer {
 }
 
 .status.error {
-  color: #f85149;
+  color: #c0392b;
 }
 
 /* Responsive */
